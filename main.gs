@@ -50,7 +50,7 @@ function getGoogleAccountInformation(){
   // Hide sheets that are not to be included in the PDF output.
   const hiddenStatus = hideSheetNonTargetPrinting(SpreadsheetApp.getActiveSpreadsheet(), outputSheetsName);
   // Output PDF.
-  const filename = 'ISF27 Google Workspace権限確認（別表）_' + Utilities.formatDate(new Date(), 'JST','yyyyMMdd');
+  const filename = 'ISF27-4 Google Workspace権限確認（別表）_' + Utilities.formatDate(new Date(), 'JST','yyyyMMdd');
   convertSpreadsheetToPdf(SpreadsheetApp.getActiveSpreadsheet(),
                           null,
                           false,
