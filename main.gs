@@ -9,21 +9,12 @@ function getGoogleAccountInformation(){
   const passwordSheetName = 'パスワードの長さに関するコンプライアンスチェック';
   const adminSheetName = '管理者権限チェック';
   const allSheetName = '全て';
-  const outputSheetsName = [passwordSheetName, adminSheetName, allSheetName];
   const adminStatusColName = '管理者のステータス';
   const passwordLengthCheckColName = 'パスワードの長さに関するコンプライアンス';
   const passwordSafetyCheckColName = 'パスワードの安全度';
   const targetHeaders = ['ユーザー', 'ユーザー アカウントのステータス', adminStatusColName, '2 段階認証プロセスの登録', '2 段階認証プロセスの適用',passwordLengthCheckColName , passwordSafetyCheckColName];
   const ss_url = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(settingSheetName).getRange('B1').getValue();
   /****** End setting constants ******/
-  // If there is no output sheet, create an output sheet.
-  outputSheetsName.forEach(x => {
-    if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(x)){
-      SpreadsheetApp.getActiveSpreadsheet().insertSheet();
-      SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().setName(x);
-      setTargetColumnsWidth(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(x));
-    }
-  });
   const allSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(allSheetName); 
   const ss = SpreadsheetApp.openByUrl(ss_url);
   const sheet = ss.getSheets()[0];
@@ -37,20 +28,32 @@ function getGoogleAccountInformation(){
   const targetValues = transposeFunction(temp3UserLogs);
   // Output to sheet.
   // All values.
-  setValuesToSheet(allSheet, targetValues);
+  setValuesToSheet_(allSheet, targetValues);
   // Password check.
   const passwordLengthCheckCol = targetValues[0].indexOf(passwordLengthCheckColName);
   const passwordSafetyCheckCol = targetValues[0].indexOf(passwordSafetyCheckColName);
   const passwordCheck = targetValues.filter((x, idx) => x[passwordLengthCheckCol] == '非準拠' || x[passwordLengthCheckCol] == '不明' || x[passwordSafetyCheckCol] == '弱' || x[passwordSafetyCheckCol] == '不明' || idx == 0);
-  setValuesToSheet(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(passwordSheetName), passwordCheck);
+  setValuesToSheet_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(passwordSheetName), passwordCheck);
   // Admin.
   const adminStatusCol = targetValues[0].indexOf(adminStatusColName);
   const adminStatus = targetValues.filter((x, idx) => x[adminStatusCol] == '特権管理者' || x[adminStatusCol] == '管理者' || idx == 0);
-  setValuesToSheet(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(adminSheetName), adminStatus);
-  // Hide sheets that are not to be included in the PDF output.
-  const hiddenStatus = hideSheetNonTargetPrinting(SpreadsheetApp.getActiveSpreadsheet(), outputSheetsName);
+  setValuesToSheet_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(adminSheetName), adminStatus);
   // Output PDF.
-  const filename = 'ISF27-4 Google Workspace権限確認（別表）_' + Utilities.formatDate(new Date(), 'JST','yyyyMMdd');
+  [
+    ['ISF27-4 管理台帳レビュー記録 資料 Googleアカウント ' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMdd'), [adminSheetName, allSheetName]], 
+    ['ISF27-5 パスワードポリシー遵守確認 GoogleWorkspace', [passwordSheetName]]
+  ].forEach(x => outputPdf_(x[0], x[1]));
+}
+/**
+ * Output PDF.
+ * @param {String} Output file name.
+ * @param {Array.<string>} An array of sheet names to output.
+ * @return none.
+ */
+function outputPdf_(filename, outputSheetNames){
+  createOutputSheets_(outputSheetNames);
+  // Hide sheets that are not to be included in the PDF output.
+  const hiddenStatus = hideSheetNonTargetPrinting(SpreadsheetApp.getActiveSpreadsheet(), outputSheetNames);
   convertSpreadsheetToPdf(SpreadsheetApp.getActiveSpreadsheet(),
                           null,
                           false,
@@ -62,16 +65,30 @@ function getGoogleAccountInformation(){
   hiddenStatus.forEach(x => x[1]? SpreadsheetApp.getActiveSpreadsheet().getSheetByName(x[0]).hideSheet(): SpreadsheetApp.getActiveSpreadsheet().getSheetByName(x[0]).showSheet());
 }
 /**
+ * If there is no output sheet, create an output sheet.
+ * @param {Array.<string>} An array of sheet names to output.
+ * @return none.
+ */
+function createOutputSheets_(outputSheetsName){
+  outputSheetsName.forEach(x => {
+    if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(x)){
+      SpreadsheetApp.getActiveSpreadsheet().insertSheet();
+      SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().setName(x);
+      setTargetColumnsWidth_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(x));
+    }
+  });
+}
+/**
  * Set array values to cells.
  * @param {sheet} Output sheet.
  * @param {Array.<string>} Values to output.
  * @return none.
  */
-function setValuesToSheet(sheet, targetValues){
+function setValuesToSheet_(sheet, targetValues){
   sheet.clear();
   sheet.getRange(1, 1).setValue('出力日：' + Utilities.formatDate(new Date(), 'JST','yyyy/M/d'));
   sheet.getRange(2, 1, targetValues.length, targetValues[0].length).setValues(targetValues);
-  setTargetColumnsWidth(sheet);
+  setTargetColumnsWidth_(sheet);
   sheet.setFrozenRows(2);
 }
 /**
@@ -79,7 +96,7 @@ function setValuesToSheet(sheet, targetValues){
  * @parem {sheet} Target sheet.
  * @return none.
  */
-function setTargetColumnsWidth(sheet){
+function setTargetColumnsWidth_(sheet){
   /* Adjust the width of the email address column. 
      The function "autoResizeColumn" cannot adjust the width of columns with Japanese characters.*/
   sheet.autoResizeColumn(1);
@@ -90,6 +107,6 @@ function setTargetColumnsWidth(sheet){
   sheet.setColumnWidth(6, 275);
   sheet.setColumnWidth(7, 128);
 }
-function onOpen() {
+function onOpen(){
   SpreadsheetApp.getActiveSpreadsheet().addMenu('権限チェック', [{name:'権限チェック', functionName:'getGoogleAccountInformation'}]);
 }
