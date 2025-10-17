@@ -167,26 +167,6 @@ class GetGoogleAccountInformationPasswordPolicy extends GetGoogleAccountInformat
     return passwordCheck;
   }
 }
-class GetGoogleAccountInformationAdmin extends GetGoogleAccountInformationAll {
-  constructor() {
-    super();
-    this.outputSheetName = "管理者権限チェック";
-    this.sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-      this.outputSheetName
-    );
-  }
-  editInputData_() {
-    const targetValues = this.getInputData_();
-    const adminStatusCol = targetValues[0].indexOf(this.adminStatusColName);
-    const adminStatus = targetValues.filter(
-      (x, idx) =>
-        x[adminStatusCol] == "特権管理者" ||
-        x[adminStatusCol] == "管理者" ||
-        idx == 0
-    );
-    return adminStatus;
-  }
-}
 function getGoogleAccountInformationPasswordPolicy() {
   const GetGoogleInfoAll = new GetGoogleAccountInformationAll();
   // Output to sheet.
@@ -196,10 +176,6 @@ function getGoogleAccountInformationPasswordPolicy() {
     new GetGoogleAccountInformationPasswordPolicy();
   // Password policy.
   GetGoogleInfoPasswordPolicy.outputPdf_();
-}
-function getGoogleAccountInformationAdmin() {
-  const GetGoogleInfoAdmin = new GetGoogleAccountInformationAdmin();
-  GetGoogleInfoAdmin.setValuesToSheet_();
 }
 function onOpen() {
   SpreadsheetApp.getActiveSpreadsheet().addMenu(
@@ -211,7 +187,4 @@ function onOpen() {
       },
     ]
   );
-  SpreadsheetApp.getActiveSpreadsheet().addMenu("アクセス権管理棚卸", [
-    { name: "シート出力", functionName: "getGoogleAccountInformationAdmin" },
-  ]);
 }
